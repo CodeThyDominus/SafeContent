@@ -1,11 +1,9 @@
 import scrapy
 from scrapy.crawler import CrawlerProcess
+
 from bs4 import BeautifulSoup
-from selenium import webdriver
 
 import nltk
-from nltk.tokenize import word_tokenize
-from nltk.corpus import words
 
 import spacy
 import psycopg2
@@ -14,10 +12,9 @@ from selenium.webdriver import Firefox
 from selenium.webdriver.firefox.options import Options
 
 
-
 # initializing nltk resource
-nltk.download('punkt')
-nltk.download('words')
+nltk.download("punkt")
+nltk.download("words")
 
 # initializing spaCy
 nlp = spacy.load("en_core_web_sm")
@@ -31,18 +28,22 @@ class InappropriateWordsDatabase:
 
     def create_table(self):
         cursor = self.conn.cursor()
-        cursor.execute('''
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS inappropriate_words (
                 id SERIAL PRIMARY KEY,
                 word TEXT UNIQUE
             )
-        ''')
+        """
+        )
         self.conn.commit()
 
     def add_word(self, word):
         cursor = self.conn.cursor()
         try:
-            cursor.execute('INSERT INTO inappropriate_words (word) VALUES (%s)', (word,))
+            cursor.execute(
+                "INSERT INTO inappropriate_words (word) VALUES (%s)", (word,)
+            )
             self.conn.commit()
         except psycopg2.IntegrityError:
             # Word already exists
@@ -50,26 +51,26 @@ class InappropriateWordsDatabase:
 
     def get_inappropriate_words(self):
         cursor = self.conn.cursor()
-        cursor.execute('SELECT word FROM inappropriate_words')
+        cursor.execute("SELECT word FROM inappropriate_words")
         return [row[0] for row in cursor.fetchall()]
 
 
 # scrapy spider
 class InappropriateWordsSpider(scrapy.Spider):
-    name = 'inappropriate_words'
-    start_urls = ['target url']
+    name = "inappropriate_words"
+    start_urls = ["target url"]
 
     def parse(self, response):
-        soup = BeautifulSoup(response.body, 'html.parser')
-        words = [word.strip() for word in soup.get_text().split('\n')]
-        yield {'words': words}
+        soup = BeautifulSoup(response.body, "html.parser")
+        words = [word.strip() for word in soup.get_text().split("\n")]
+        yield {"words": words}
 
 
 # Selenium - web interaction
 def scrape_web_content(url):
     # initializing selenium webdriver for firefox
     firefox_options = Options()
-    driver = Firefox(executable_path='path to geckodriver', options=firefox_options)
+    driver = Firefox(executable_path="path to geckodriver", options=firefox_options)
     driver.get(url)
 
     # Extract the webpage's HTML source using Selenium
@@ -89,7 +90,7 @@ class ContentFilter:
         filtered_text = text
         for token in doc:
             if token.lower_ in self.inappropriate_words:
-                replacement = '*' * len(token.text)
+                replacement = "*" * len(token.text)
                 filtered_text = filtered_text.replace(token.text, replacement)
         return filtered_text
 
@@ -100,8 +101,7 @@ def update_database(database):
     process.start()
 
     scraped_data = process.crawlers[0].spider.data
-    if 'words' in scraped_data:
-        words = scraped_data['words']
+    if "words" in scraped_data:
+        words = scraped_data["words"]
         for word in words:
             database.add_word(word)
-
