@@ -4,8 +4,8 @@ content filtering system which will report and restrict use of illcit words, phr
 # Using Chromedriver
 To use Chome(chromedriver) instead of firefox(geckodriver)
 Replace
-`firefox_options = Options(
-driver = Firefox(executable_path='path to geckodriver', options=firefox_options)`
+`firefox_options = Options()`
+`driver = Firefox(executable_path='path to geckodriver', options=firefox_options)`
 with
 `driver = webdriver.Chrome(executable_path='path to chromedriver.exe')`
 
