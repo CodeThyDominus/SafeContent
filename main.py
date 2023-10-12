@@ -10,6 +10,11 @@ from nltk.corpus import words
 import spacy
 import psycopg2
 
+from selenium.webdriver import Firefox
+from selenium.webdriver.firefox.options import Options
+
+
+
 # initializing nltk resource
 nltk.download('punkt')
 nltk.download('words')
@@ -62,8 +67,9 @@ class InappropriateWordsSpider(scrapy.Spider):
 
 # Selenium - web interaction
 def scrape_web_content(url):
-    # initializing selenium webdriver
-    driver = webdriver.Chrome(executable_path='path to  webdriver')
+    # initializing selenium webdriver for firefox
+    firefox_options = Options()
+    driver = Firefox(executable_path='path to geckodriver', options=firefox_options)
     driver.get(url)
 
     # Extract the webpage's HTML source using Selenium
@@ -88,7 +94,7 @@ class ContentFilter:
         return filtered_text
 
 
-def update_database():
+def update_database(database):
     process = CrawlerProcess()
     process.crawl(InappropriateWordsSpider)
     process.start()
