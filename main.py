@@ -7,6 +7,8 @@ import nltk
 
 import spacy
 import psycopg2
+import schedule
+import time
 
 from selenium.webdriver import Firefox
 from selenium.webdriver.firefox.options import Options
@@ -105,3 +107,37 @@ def update_database(database):
         words = scraped_data["words"]
         for word in words:
             database.add_word(word)
+
+
+def schedule_updates():
+
+    update_interval = 1  # in days
+
+    # Schedule the updates
+    schedule.every(update_interval).days.do(update_database)
+
+
+if __name__ == '__main__':
+    # Initialize the database
+    database_url = "postgresql://username:password@localhost:5432/database_name"
+    database = InappropriateWordsDatabase(database_url)
+
+    # Scheduling automatic updates
+    schedule_updates()
+
+    # Creating a ContentFilter instance
+    content_filter = ContentFilter(database)
+
+    while True:
+        user_input = input("Enter your text: ")
+        filtered_input = content_filter.filter_content(user_input)
+
+        if filtered_input != user_input:
+            print("Warning: Inappropriate content detected. Please revise your text.")
+            print("Filtered Text:", filtered_input)
+            # You can add code here to report the use of inappropriate content
+        else:
+            print("Your text is clean.")
+
+        # Run scheduled jobs
+        schedule.run_pending()
