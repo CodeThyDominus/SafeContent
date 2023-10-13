@@ -8,7 +8,6 @@ import nltk
 import spacy
 import psycopg2
 import schedule
-import time
 
 from selenium.webdriver import Firefox
 from selenium.webdriver.firefox.options import Options
