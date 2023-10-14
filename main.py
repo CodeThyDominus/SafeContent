@@ -125,7 +125,9 @@ def report_words(content, usr_id):
         log_file.write(f"User ID: {user_id}\n")
 
     admin_notification = f"Admin: Inappropriate content detected from User ID {usr_id}.\nContent: {content}"
-    send_admin_notification(admin_notification)   #uncomment send_admin notification and insert valid credential or use smptlib with gmail.
+    # uncomment send_admin notification and insert valid credential or use smptlib with gmail.
+    send_admin_notification(admin_notification)
+
 
 # Function to update the database with the latest
 def update_database(db):
@@ -140,16 +142,9 @@ def update_database(db):
             db.add_word(word)
 
 
-def schedule_updates():
-    update_interval = 1  # in days
-    schedule.every(update_interval).days.do(update_database)
-
-
 if __name__ == '__main__':
     database_url = "postgresql database url"
     database = InappropriateWordsDatabase(database_url)
-
-    schedule_updates()
 
     content_filter = ContentFilter(database)
 
@@ -166,5 +161,4 @@ if __name__ == '__main__':
         else:
             print("Your text is clean.")
 
-        # Run scheduled jobs
         run_pending()
