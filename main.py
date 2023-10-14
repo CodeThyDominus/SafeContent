@@ -8,6 +8,7 @@ import nltk
 import spacy
 import psycopg2
 import schedule
+import time
 
 from selenium.webdriver import Firefox
 from selenium.webdriver.firefox.options import Options
@@ -20,10 +21,16 @@ nltk.download("words")
 nlp = spacy.load("en_core_web_sm")
 
 
+def run_pending():
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
+
 # postgreSQL database
 class InappropriateWordsDatabase:
-    def __init__(self, database_url):
-        self.conn = psycopg2.connect(database_url)
+    def __init__(self, db_url):
+        self.conn = psycopg2.connect(db_url)
         self.create_table()
 
     def create_table(self):
@@ -57,7 +64,7 @@ class InappropriateWordsDatabase:
 # scrapy spider
 class InappropriateWordsSpider(scrapy.Spider):
     name = "inappropriate_words"
-    start_urls = ["target url"]
+    start_urls = ["https://en.wiktionary.org/wiki/Category:English_swear_words"]
 
     def parse(self, response):
         soup = BeautifulSoup(response.body, "html.parser")
@@ -81,8 +88,8 @@ def scrape_web_content(url):
 
 # NLP filter
 class ContentFilter:
-    def __init__(self, database):
-        self.inappropriate_words = set(database.get_inappropriate_words())
+    def __init__(self, db):
+        self.inappropriate_words = set(db.get_inappropriate_words())
 
     def filter_content(self, text):
         doc = nlp(text)
@@ -115,10 +122,10 @@ def send_admin_notification(message):
     server.quit()
 
 
-def report_words(content, user_id):
+def report_words(content, usr_id):
     with open("log_file.txt", "a") as log_file:
         log_file.write(f"Inappropriate content detected: {content}\n")
-        log_file.write(f"User ID: {user_id}\n")
+        log_file.write(f"User ID: {usr_id}\n")
 
     admin_notification = f"Admin: Inappropriate content detected from User ID {user_id}.\nContent: {content}"
     send_admin_notification(admin_notification)
@@ -127,7 +134,7 @@ def report_words(content, user_id):
 # Function to update the database with the latest
 
 
-def update_database(database):
+def update_database(db):
     process = CrawlerProcess()
     process.crawl(InappropriateWordsSpider)
     process.start()
@@ -136,7 +143,7 @@ def update_database(database):
     if "words" in scraped_data:
         words = scraped_data["words"]
         for word in words:
-            database.add_word(word)
+            db.add_word(word)
 
 
 def schedule_updates():
@@ -166,4 +173,4 @@ if __name__ == '__main__':
             print("Your text is clean.")
 
         # Run scheduled jobs
-        schedule.run_pending()
+        run_pending()
