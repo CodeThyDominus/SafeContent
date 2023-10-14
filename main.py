@@ -1,23 +1,19 @@
 import scrapy
 from scrapy.crawler import CrawlerProcess
-
 from bs4 import BeautifulSoup
-
 import nltk
-
 import spacy
 import psycopg2
 import schedule
 import time
-
-from selenium.webdriver import Firefox
+from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 
-# initializing nltk resource
+# Initializing nltk resource
 nltk.download("punkt")
 nltk.download("words")
 
-# initializing spaCy
+# Initializing spaCy
 nlp = spacy.load("en_core_web_sm")
 
 
@@ -27,7 +23,7 @@ def run_pending():
         time.sleep(1)
 
 
-# postgreSQL database
+# PostgreSQL database
 class InappropriateWordsDatabase:
     def __init__(self, db_url):
         self.conn = psycopg2.connect(db_url)
@@ -61,28 +57,29 @@ class InappropriateWordsDatabase:
         return [row[0] for row in cursor.fetchall()]
 
 
-# scrapy spider
+# Scrapy spider
 class InappropriateWordsSpider(scrapy.Spider):
     name = "inappropriate_words"
     start_urls = ["https://en.wiktionary.org/wiki/Category:English_swear_words"]
 
     def parse(self, response):
+        # Extract data from the response
         soup = BeautifulSoup(response.body, "html.parser")
         words = [word.strip() for word in soup.get_text().split("\n")]
         yield {"words": words}
 
 
 # Selenium - web interaction
-def scrape_web_content(url):
-    # initializing selenium webdriver for firefox
+def scrape_web_content(url, geckodriver_path):
     firefox_options = Options()
-    driver = Firefox(executable_path="path to geckodriver", options=firefox_options)
+    firefox_options.headless = True
+    firefox_options.binary_location = "/usr/bin/firefox"  # Specify the path to Firefox if needed
+
+    driver = webdriver.Firefox(options=firefox_options, executable_path=geckodriver_path)
+
     driver.get(url)
-
-    # Extract the webpage's HTML source using Selenium
     html_source = driver.page_source
-    driver.quit()  # Close the WebDriver
-
+    driver.quit()
     return html_source
 
 
@@ -101,9 +98,9 @@ class ContentFilter:
         return filtered_text
 
 
-# reporting
-def send_admin_notification(message):
-    admin_email = "admin@gmail.com"
+# Reporting
+""" def send_admin_notification(message):
+    admin_email = "thydominus@gmail.com"
     subject = "Inappropriate Content Report"
 
     import smtplib
@@ -119,21 +116,18 @@ def send_admin_notification(message):
     server.starttls()
     server.login("your_app@example.com", "your_password")
     server.send_message(msg)
-    server.quit()
+    server.quit() """
 
 
 def report_words(content, usr_id):
     with open("log_file.txt", "a") as log_file:
         log_file.write(f"Inappropriate content detected: {content}\n")
-        log_file.write(f"User ID: {usr_id}\n")
+        log_file.write(f"User ID: {user_id}\n")
 
-    admin_notification = f"Admin: Inappropriate content detected from User ID {user_id}.\nContent: {content}"
-    send_admin_notification(admin_notification)
-
+    admin_notification = f"Admin: Inappropriate content detected from User ID {usr_id}.\nContent: {content}"
+    send_admin_notification(admin_notification)   #uncomment send_admin notification and insert valid credential or use smptlib with gmail.
 
 # Function to update the database with the latest
-
-
 def update_database(db):
     process = CrawlerProcess()
     process.crawl(InappropriateWordsSpider)
