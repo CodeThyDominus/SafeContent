@@ -12,7 +12,6 @@ import schedule
 from selenium.webdriver import Firefox
 from selenium.webdriver.firefox.options import Options
 
-
 # initializing nltk resource
 nltk.download("punkt")
 nltk.download("words")
@@ -47,7 +46,6 @@ class InappropriateWordsDatabase:
             )
             self.conn.commit()
         except psycopg2.IntegrityError:
-            # Word already exists
             pass
 
     def get_inappropriate_words(self):
@@ -96,6 +94,39 @@ class ContentFilter:
         return filtered_text
 
 
+# reporting
+def send_admin_notification(message):
+    admin_email = "admin@gmail.com"
+    subject = "Inappropriate Content Report"
+
+    import smtplib
+    from email.message import EmailMessage
+
+    msg = EmailMessage()
+    msg.set_content(message)
+    msg["Subject"] = subject
+    msg["From"] = "your_app@example.com"
+    msg["To"] = admin_email
+
+    server = smtplib.SMTP("smtp.example.com", 587)
+    server.starttls()
+    server.login("your_app@example.com", "your_password")
+    server.send_message(msg)
+    server.quit()
+
+
+def report_words(content, user_id):
+    with open("log_file.txt", "a") as log_file:
+        log_file.write(f"Inappropriate content detected: {content}\n")
+        log_file.write(f"User ID: {user_id}\n")
+
+    admin_notification = f"Admin: Inappropriate content detected from User ID {user_id}.\nContent: {content}"
+    send_admin_notification(admin_notification)
+
+
+# Function to update the database with the latest
+
+
 def update_database(database):
     process = CrawlerProcess()
     process.crawl(InappropriateWordsSpider)
@@ -109,32 +140,28 @@ def update_database(database):
 
 
 def schedule_updates():
-
     update_interval = 1  # in days
-
-    # Schedule the updates
     schedule.every(update_interval).days.do(update_database)
 
 
 if __name__ == '__main__':
-    # Initialize the database
-    database_url = "postgresql://username:password@localhost:5432/database_name"
+    database_url = "postgresql database url"
     database = InappropriateWordsDatabase(database_url)
 
-    # Scheduling automatic updates
     schedule_updates()
 
-    # Creating a ContentFilter instance
     content_filter = ContentFilter(database)
 
     while True:
+        user_id = input("Enter your user ID: ")
         user_input = input("Enter your text: ")
         filtered_input = content_filter.filter_content(user_input)
 
         if filtered_input != user_input:
-            print("Warning: Inappropriate content detected. Please revise your text.")
+            print("Warning: Inappropriate content detected. Please review your text.")
             print("Filtered Text:", filtered_input)
-            # You can add code here to report the use of inappropriate content
+
+            report_words(user_input, user_id)
         else:
             print("Your text is clean.")
 
